@@ -1,5 +1,14 @@
 import type { Wallet } from "@arkade-os/sdk";
-import type { TokenBalance, TokenInfo, TokenIssueParams, TokenTransferParams } from "../types";
+import type {
+  TokenBalance,
+  TokenInfo,
+  TokenIssueParams,
+  TokenSupportStatus,
+  TokenTransferParams,
+} from "../types";
+
+const TOKEN_UNSUPPORTED_REASON =
+  "Token issuance is not available in this browser wallet build with the current Arkade SDK.";
 
 export class TokenManager {
   private readonly wallet: Wallet;
@@ -8,11 +17,28 @@ export class TokenManager {
     this.wallet = wallet;
   }
 
-  async issue(params: TokenIssueParams): Promise<TokenInfo> {
-    const assetManager = (this.wallet as any).assetManager;
+  getSupportStatus(): TokenSupportStatus {
+    const supported = Boolean((this.wallet as { assetManager?: unknown }).assetManager);
+
+    return supported
+      ? { supported: true }
+      : {
+          supported: false,
+          reason: TOKEN_UNSUPPORTED_REASON,
+        };
+  }
+
+  private getAssetManager() {
+    const assetManager = (this.wallet as { assetManager?: any }).assetManager;
     if (!assetManager) {
-      throw new Error("Asset manager not available on this wallet instance");
+      throw new Error(TOKEN_UNSUPPORTED_REASON);
     }
+
+    return assetManager;
+  }
+
+  async issue(params: TokenIssueParams): Promise<TokenInfo> {
+    const assetManager = this.getAssetManager();
 
     const result = await assetManager.issue({
       amount: params.amount,
@@ -31,10 +57,7 @@ export class TokenManager {
   }
 
   async transfer(params: TokenTransferParams): Promise<string> {
-    const assetManager = (this.wallet as any).assetManager;
-    if (!assetManager) {
-      throw new Error("Asset manager not available on this wallet instance");
-    }
+    const assetManager = this.getAssetManager();
 
     return assetManager.transfer({
       address: params.address,
@@ -44,10 +67,7 @@ export class TokenManager {
   }
 
   async getBalances(): Promise<TokenBalance[]> {
-    const assetManager = (this.wallet as any).assetManager;
-    if (!assetManager) {
-      throw new Error("Asset manager not available on this wallet instance");
-    }
+    const assetManager = this.getAssetManager();
 
     const balances = await assetManager.getBalances();
 

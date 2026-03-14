@@ -85,6 +85,11 @@ export interface TokenBalance {
   decimals: number;
 }
 
+export interface TokenSupportStatus {
+  supported: boolean;
+  reason?: string;
+}
+
 export interface SendResult {
   txid: string;
   route: PaymentRoute;

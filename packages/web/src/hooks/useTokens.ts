@@ -13,6 +13,8 @@ export function useTokens(pollInterval = 15_000) {
   const [tokens, setTokens] = useState<TokenBalance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [supported, setSupported] = useState(true);
+  const [supportReason, setSupportReason] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
@@ -20,19 +22,51 @@ export function useTokens(pollInterval = 15_000) {
       setTokens(data.balances);
       setError(null);
     } catch (err: any) {
-      // Token support may not be available
-      if (!err.message?.includes("not available")) {
-        setError(err.message);
-      }
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, pollInterval);
-    return () => clearInterval(interval);
+    let cancelled = false;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    const init = async () => {
+      try {
+        const status = await api.getTokenSupport();
+        if (cancelled) return;
+
+        setSupported(status.supported);
+        setSupportReason(status.reason ?? null);
+
+        if (!status.supported) {
+          setTokens([]);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+
+        await refresh();
+        if (!cancelled) {
+          interval = setInterval(refresh, pollInterval);
+        }
+      } catch (err: any) {
+        if (cancelled) return;
+        setSupported(false);
+        setSupportReason(err.message ?? "Token support is unavailable.");
+        setTokens([]);
+        setError(null);
+        setLoading(false);
+      }
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
   }, [refresh, pollInterval]);
 
   const issueToken = useCallback(
@@ -53,5 +87,14 @@ export function useTokens(pollInterval = 15_000) {
     [refresh]
   );
 
-  return { tokens, loading, error, refresh, issueToken, transferToken };
+  return {
+    tokens,
+    loading,
+    error,
+    supported,
+    supportReason,
+    refresh,
+    issueToken,
+    transferToken,
+  };
 }

@@ -7,6 +7,7 @@ import type {
   TokenBalance,
   TokenInfo,
   TokenIssueParams,
+  TokenSupportStatus,
   TokenTransferParams,
   UnifiedBalance,
   UnifiedTransaction,
@@ -20,6 +21,7 @@ export type {
   TokenBalance,
   TokenInfo,
   TokenIssueParams,
+  TokenSupportStatus,
   TokenTransferParams,
   UnifiedBalance,
   WalletStatus,
@@ -70,4 +72,7 @@ export const api = {
     browserWalletEngine.getTokenBalances().then((balances: TokenBalance[]) => ({
       balances,
     })),
+
+  getTokenSupport: (): Promise<TokenSupportStatus> =>
+    browserWalletEngine.getTokenSupport(),
 };

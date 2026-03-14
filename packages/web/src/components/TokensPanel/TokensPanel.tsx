@@ -3,7 +3,7 @@ import { Coins, Plus, Send, ChevronDown, ChevronUp, X, Loader2, AlertCircle } fr
 import { useTokens } from "../../hooks/useTokens";
 
 export function TokensPanel() {
-  const { tokens, loading, issueToken, transferToken } = useTokens();
+  const { tokens, loading, supported, supportReason, issueToken, transferToken } = useTokens();
   const [expanded, setExpanded] = useState(false);
   const [showIssue, setShowIssue] = useState(false);
   const [showTransfer, setShowTransfer] = useState<string | null>(null);
@@ -22,7 +22,11 @@ export function TokensPanel() {
             <div className="text-left">
               <h3 className="text-[15px] font-semibold">Assets</h3>
               <p className="text-[11px] text-gray-500">
-                {tokens.length > 0 ? `${tokens.length} token${tokens.length !== 1 ? "s" : ""}` : "Issue & manage tokens"}
+                {tokens.length > 0
+                  ? `${tokens.length} token${tokens.length !== 1 ? "s" : ""}`
+                  : supported
+                    ? "Issue & manage tokens"
+                    : "Unavailable in this build"}
               </p>
             </div>
           </div>
@@ -39,8 +43,19 @@ export function TokensPanel() {
           <div className="mt-5 space-y-3 animate-fade-in">
             {tokens.length === 0 && !loading ? (
               <div className="text-center py-6">
-                <p className="text-gray-500 text-sm">No tokens issued yet</p>
-                <p className="text-gray-600 text-[12px] mt-1">Create your first Bitcoin-native asset</p>
+                {supported ? (
+                  <>
+                    <p className="text-gray-500 text-sm">No tokens issued yet</p>
+                    <p className="text-gray-600 text-[12px] mt-1">Create your first Bitcoin-native asset</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-500 text-sm">Assets unavailable</p>
+                    <p className="text-gray-600 text-[12px] mt-1">
+                      {supportReason ?? "This wallet build does not support token issuance."}
+                    </p>
+                  </>
+                )}
               </div>
             ) : (
               tokens.map((token) => (
@@ -76,11 +91,16 @@ export function TokensPanel() {
             )}
 
             <button
-              onClick={() => setShowIssue(true)}
-              className="btn-secondary w-full flex items-center justify-center gap-2 py-3"
+              onClick={() => {
+                if (supported) {
+                  setShowIssue(true);
+                }
+              }}
+              disabled={!supported}
+              className="btn-secondary w-full flex items-center justify-center gap-2 py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Plus className="w-4 h-4" />
-              <span className="text-sm">Issue New Token</span>
+              <span className="text-sm">{supported ? "Issue New Token" : "Assets Unavailable"}</span>
             </button>
           </div>
         )}

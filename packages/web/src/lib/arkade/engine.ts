@@ -19,6 +19,7 @@ import type {
   TokenBalance,
   TokenInfo,
   TokenIssueParams,
+  TokenSupportStatus,
   TokenTransferParams,
   UnifiedBalance,
   UnifiedTransaction,
@@ -187,6 +188,11 @@ class BrowserWalletEngine {
   async getTokenBalances(): Promise<TokenBalance[]> {
     await this.ensureInitialized();
     return this.tokenManager!.getBalances();
+  }
+
+  async getTokenSupport(): Promise<TokenSupportStatus> {
+    await this.ensureInitialized();
+    return this.tokenManager!.getSupportStatus();
   }
 
   async shutdown(): Promise<void> {
