@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ArrowDownLeft, X, Copy, Check, Zap, Layers, Globe, Loader2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { api } from "../../api/client";
+import { api, type LightningInvoiceLimits } from "../../api/client";
 
 interface Props {
   open: boolean;
@@ -21,7 +21,10 @@ export function ReceiveDialog({ open, onClose }: Props) {
   const [addresses, setAddresses] = useState<{ ark: string; boarding: string } | null>(null);
   const [invoice, setInvoice] = useState<string | null>(null);
   const [invoiceAmount, setInvoiceAmount] = useState("");
+  const [invoiceLimits, setInvoiceLimits] = useState<LightningInvoiceLimits | null>(null);
   const [loadingInvoice, setLoadingInvoice] = useState(false);
+  const [loadingLimits, setLoadingLimits] = useState(false);
+  const [invoiceError, setInvoiceError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -30,15 +33,72 @@ export function ReceiveDialog({ open, onClose }: Props) {
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open || tab !== "lightning") return;
+
+    let cancelled = false;
+
+    setLoadingLimits(true);
+
+    api
+      .getLightningInvoiceLimits()
+      .then((limits) => {
+        if (!cancelled) {
+          setInvoiceLimits(limits);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setInvoiceLimits(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingLimits(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, tab]);
+
+  const invoiceAmountValue = parseInt(invoiceAmount, 10);
+  const invoiceAmountError =
+    !invoiceAmount.trim() ? null
+    : Number.isNaN(invoiceAmountValue) || invoiceAmountValue <= 0 ? "Enter an amount greater than 0 sats."
+    : invoiceLimits && invoiceAmountValue < invoiceLimits.min ? `Minimum Lightning invoice is ${invoiceLimits.min.toLocaleString()} sats.`
+    : invoiceLimits && invoiceAmountValue > invoiceLimits.max ? `Maximum Lightning invoice is ${invoiceLimits.max.toLocaleString()} sats.`
+    : null;
+
+  const formatInvoiceError = (err: unknown): string => {
+    if (err instanceof Error) {
+      const match = err.message.match(/"error":"([^"]+)"/);
+      if (match?.[1]) return match[1];
+      if (err.message.trim()) return err.message;
+    }
+
+    return "Unable to generate Lightning invoice right now.";
+  };
+
   const generateInvoice = async () => {
+    if (invoiceAmountError) {
+      setInvoiceError(invoiceAmountError);
+      return;
+    }
+
     const amount = parseInt(invoiceAmount, 10);
     if (!amount) return;
+
     setLoadingInvoice(true);
+    setInvoiceError(null);
+
     try {
       const result = await api.createInvoice(amount);
       setInvoice(result.invoice);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Invoice error:", err);
+      setInvoiceError(formatInvoiceError(err));
     } finally {
       setLoadingInvoice(false);
     }
@@ -54,6 +114,7 @@ export function ReceiveDialog({ open, onClose }: Props) {
     setTab("instant");
     setInvoice(null);
     setInvoiceAmount("");
+    setInvoiceError(null);
     onClose();
   };
 
@@ -116,7 +177,10 @@ export function ReceiveDialog({ open, onClose }: Props) {
                 <input
                   type="number"
                   value={invoiceAmount}
-                  onChange={(e) => setInvoiceAmount(e.target.value)}
+                  onChange={(e) => {
+                    setInvoiceAmount(e.target.value);
+                    setInvoiceError(null);
+                  }}
                   placeholder="0"
                   className="input-field font-mono text-lg pr-16"
                   autoFocus
@@ -126,14 +190,28 @@ export function ReceiveDialog({ open, onClose }: Props) {
                 </span>
               </div>
             </div>
+            {invoiceLimits && (
+              <p className="text-[12px] text-gray-500 ml-1">
+                Lightning invoices on this network support {invoiceLimits.min.toLocaleString()} to {invoiceLimits.max.toLocaleString()} sats.
+              </p>
+            )}
+            {(invoiceAmountError || invoiceError) && (
+              <div className="bg-red-500/8 border border-red-500/15 rounded-xl p-3">
+                <p className="text-red-400 text-sm">{invoiceAmountError ?? invoiceError}</p>
+              </div>
+            )}
             <button
               onClick={generateInvoice}
-              disabled={!invoiceAmount || loadingInvoice}
+              disabled={!invoiceAmount || loadingInvoice || loadingLimits || Boolean(invoiceAmountError)}
               className="btn-primary w-full"
             >
               {loadingInvoice ? (
                 <span className="flex items-center justify-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+                </span>
+              ) : loadingLimits ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading limits...
                 </span>
               ) : (
                 "Generate Invoice"

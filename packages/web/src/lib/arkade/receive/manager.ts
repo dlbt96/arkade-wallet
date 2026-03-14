@@ -1,6 +1,10 @@
 import type { Wallet } from "@arkade-os/sdk";
 import type { ArkadeLightning } from "@arkade-os/boltz-swap";
-import type { LightningInvoiceResult, ReceiveAddresses } from "../types";
+import type {
+  LightningInvoiceLimits,
+  LightningInvoiceResult,
+  ReceiveAddresses,
+} from "../types";
 
 export class ReceiveManager {
   private readonly wallet: Wallet;
@@ -18,6 +22,10 @@ export class ReceiveManager {
     ]);
 
     return { ark, boarding };
+  }
+
+  async getInvoiceLimits(): Promise<LightningInvoiceLimits> {
+    return this.lightning.getLimits();
   }
 
   async createInvoice(

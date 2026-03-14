@@ -11,6 +11,7 @@ import { Scheduler } from "./automation/scheduler";
 import { TokenManager } from "./tokens/manager";
 import type {
   CreateWalletResult,
+  LightningInvoiceLimits,
   LightningInvoiceResult,
   ReceiveAddresses,
   ReceiveAddressesResponse,
@@ -150,6 +151,11 @@ class BrowserWalletEngine {
   ): Promise<LightningInvoiceResult> {
     await this.ensureInitialized();
     return this.receiveManager!.createInvoice(amountSats, description);
+  }
+
+  async getLightningInvoiceLimits(): Promise<LightningInvoiceLimits> {
+    await this.ensureInitialized();
+    return this.receiveManager!.getInvoiceLimits();
   }
 
   async getTransactions(): Promise<UnifiedTransaction[]> {

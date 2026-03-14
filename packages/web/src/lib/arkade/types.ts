@@ -46,6 +46,11 @@ export interface LightningInvoiceResult {
   amount: number;
 }
 
+export interface LightningInvoiceLimits {
+  min: number;
+  max: number;
+}
+
 export interface ReceiveAddressesResponse {
   instant: { address: string; label: string; description: string };
   onchain: { address: string; label: string; description: string };

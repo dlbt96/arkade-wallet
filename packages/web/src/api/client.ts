@@ -1,6 +1,7 @@
 import { browserWalletEngine } from "../lib/arkade/engine";
 import type {
   CreateWalletResult,
+  LightningInvoiceLimits,
   ReceiveAddresses,
   SendResult,
   TokenBalance,
@@ -14,6 +15,7 @@ import type {
 
 export type {
   CreateWalletResult,
+  LightningInvoiceLimits,
   SendResult,
   TokenBalance,
   TokenInfo,
@@ -44,6 +46,9 @@ export const api = {
 
   createInvoice: (amountSats: number, description?: string) =>
     browserWalletEngine.createInvoice(amountSats, description),
+
+  getLightningInvoiceLimits: (): Promise<LightningInvoiceLimits> =>
+    browserWalletEngine.getLightningInvoiceLimits(),
 
   getReceiveAddresses: () => browserWalletEngine.getReceiveAddresses(),
 
