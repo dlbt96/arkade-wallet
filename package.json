@@ -1,0 +1,21 @@
+{
+  "name": "arkade-wallet",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:server": "pnpm --filter @arkade-wallet/server dev",
+    "dev:web": "pnpm --filter @arkade-wallet/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@arkade-os/sdk",
+      "better-sqlite3",
+      "esbuild"
+    ]
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}
